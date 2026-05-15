@@ -1,0 +1,84 @@
+
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile with role-based access",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string" },
+        "role": { "type": "string", "enum": ["admin", "employee"] },
+        "displayName": { "type": "string" }
+      },
+      "required": ["uid", "email", "role"]
+    },
+    "MenuItem": {
+      "title": "Menu Item",
+      "description": "Product available for sale",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "price": { "type": "number" },
+        "category": { "type": "string" },
+        "recipe": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "ingredientId": { "type": "string" },
+              "quantity": { "type": "number" }
+            }
+          }
+        }
+      }
+    },
+    "Ingredient": {
+      "title": "Ingredient",
+      "description": "Stock item with depletion tracking",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "currentStock": { "type": "number" },
+        "unit": { "type": "string" },
+        "averageDailySales": { "type": "number" },
+        "leadTimeDays": { "type": "number" },
+        "safetyStockDays": { "type": "number" }
+      }
+    },
+    "SalesTransaction": {
+      "title": "Sales Transaction",
+      "description": "Recorded POS sale",
+      "type": "object",
+      "properties": {
+        "items": { "type": "array" },
+        "total": { "type": "number" },
+        "timestamp": { "type": "string", "format": "date-time" },
+        "paymentMethod": { "type": "string" },
+        "staffId": { "type": "string" }
+      }
+    }
+  },
+  "auth": {
+    "providers": ["password", "google"]
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "#/entities/User",
+      "description": "User profiles"
+    },
+    "/menu_items/{itemId}": {
+      "schema": "#/entities/MenuItem",
+      "description": "Menu catalog"
+    },
+    "/ingredients/{ingredientId}": {
+      "schema": "#/entities/Ingredient",
+      "description": "Inventory stock"
+    },
+    "/sales_transactions/{transactionId}": {
+      "schema": "#/entities/SalesTransaction",
+      "description": "Sales records"
+    }
+  }
+}

@@ -1,0 +1,23 @@
+
+{
+  "placeholderImages": [
+    {
+      "id": "hero-tea",
+      "description": "Premium Masala Tea in a traditional cup",
+      "imageUrl": "https://picsum.photos/seed/tea1/800/600",
+      "imageHint": "masala tea"
+    },
+    {
+      "id": "bakery-items",
+      "description": "Freshly baked cookies and pastries",
+      "imageUrl": "https://picsum.photos/seed/bakery/800/600",
+      "imageHint": "bakery cookies"
+    },
+    {
+      "id": "shop-interior",
+      "description": "Modern tea shop interior",
+      "imageUrl": "https://picsum.photos/seed/interior/800/600",
+      "imageHint": "tea shop"
+    }
+  ]
+}
