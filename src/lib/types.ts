@@ -154,11 +154,19 @@ export interface SalesTransaction {
 
 export interface Ingredient {
   id: string;
-  branchId?: string;
+  branchId: string;
   name: string;
   currentStock: number;
   unit: string;
   reorderLevel: number;
+  costPrice: number;
+  lastCostPrice?: number;
+  vendorId?: string;
+  wastagePercent?: number;
+  leadTimeDays?: number;
+  safetyStockDays?: number;
+  minOrderQty?: number;
+  maxOrderQty?: number;
   category:
     | "dairy"
     | "dry"
@@ -169,6 +177,49 @@ export interface Ingredient {
   lastUpdated?: string;
 }
 
+export type StockTransactionType =
+  | "purchase"
+  | "sale_deduction"
+  | "wastage"
+  | "adjustment"
+  | "opening";
+
+export interface StockLedgerEntry {
+  id?: string;
+  branchId: string;
+  ingredientId: string;
+  ingredientName: string;
+  change: number;
+  prevStock: number;
+  newStock: number;
+  type: StockTransactionType;
+  reason: string;
+  costPrice: number;
+  vendorId?: string;
+  refId?: string;
+  batchId?: string;
+  timestamp: string;
+  userId: string;
+}
+
+export interface InventoryBatch {
+  id?: string;
+  branchId: string;
+  ingredientId: string;
+  ingredientName: string;
+  vendorId?: string;
+  invoiceRef?: string;
+  purchaseTimestamp: string;
+  quantity: number;
+  consumedQuantity: number;
+  remainingQuantity: number;
+  availableQuantity: number;
+  unitCost: number;
+  batchCost: number;
+  effectiveCost: number;
+  createdAt?: string;
+}
+
 export interface StockTransaction {
   id?: string;
   branchId: string;
@@ -177,7 +228,35 @@ export interface StockTransaction {
   change: number;
   type: "deduction" | "refill" | "adjustment" | "wastage";
   reason: string;
+  vendorId?: string;
   timestamp: string;
+}
+
+export type ExpenseCategory =
+  | "daily_expenses"
+  | "salary"
+  | "rent"
+  | "utilities"
+  | "repairs"
+  | "stock_purchase"
+  | "vendor_payment"
+  | "miscellaneous"
+  | "milk";
+
+export type FinancialTransactionType = "inflow" | "outflow";
+
+export interface FinancialLedgerEntry {
+  id?: string;
+  branchId: string;
+  amount: number;
+  type: FinancialTransactionType;
+  category: ExpenseCategory | "sale" | "refund";
+  paymentMethod: "cash" | "online";
+  description: string;
+  vendorId?: string; // Optional: For dairy/stock vendors
+  refId?: string; // ID of related stock transaction or sale
+  timestamp: string;
+  userId: string;
 }
 
 export interface Vendor {
@@ -186,6 +265,49 @@ export interface Vendor {
   name: string;
   contact: string;
   category: string;
+}
+
+export type VendorType = "local" | "distributor" | "expense";
+
+export interface MilkSupplyEntry {
+  id?: string;
+  vendorId: string;
+  branchId: string;
+  date: string;
+  receivedLiters: number;
+  usedLiters: number;
+  wastageLiters: number;
+  unitCost: number; // per liter
+  totalCost: number;
+  notes?: string;
+  timestamp?: string;
+}
+
+export interface GasCylinderEntry {
+  id?: string;
+  vendorId: string;
+  branchId: string;
+  date: string;
+  cylinderId?: string;
+  refillCost: number;
+  usageDays?: number;
+  notes?: string;
+  timestamp?: string;
+}
+
+export interface DistributorInvoice {
+  id?: string;
+  vendorId: string;
+  branchId: string;
+  invoiceNumber: string;
+  date: string;
+  items: { sku?: string; name: string; qty: number; unitCost: number; total: number }[];
+  subtotal: number;
+  tax: number;
+  total: number;
+  paid: number;
+  status: "open" | "partially_paid" | "paid";
+  timestamp?: string;
 }
 
 export interface Expense {

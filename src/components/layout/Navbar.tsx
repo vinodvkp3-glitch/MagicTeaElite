@@ -10,6 +10,7 @@ import {
   TrendingUp, 
   ReceiptText,
   Settings,
+  Users,
   ChevronDown,
   Moon,
   Sun,
@@ -32,14 +33,19 @@ import {
 
 const navItems = [
   { name: "Dashboard", href: "/", icon: LayoutDashboard },
-  { name: "Hisaab", href: "/hisab", icon: TrendingUp },
-  { name: "Expenses", href: "/expenses", icon: Wallet },
-  { name: "Stock", href: "/inventory", icon: Package },
-  { name: "Office Chai", href: "/office", icon: Briefcase },
-  { name: "Dairy", href: "/dairy", icon: Truck },
-  { name: "POS Billing", href: "/pos", icon: ShoppingCart },
+  { name: "POS", href: "/pos", icon: ShoppingCart },
+  { name: "Inventory", href: "/inventory", icon: Package },
+  { name: "Vendors", href: "/vendors", icon: Truck },
   { name: "Reports", href: "/reports", icon: ReceiptText },
+  { name: "Staff", href: "/staff", icon: Users },
   { name: "Settings", href: "/settings", icon: Settings },
+];
+
+const vendorSubItems = [
+  { name: "Milk", href: "/vendors/milk" },
+  { name: "Gas", href: "/vendors/gas" },
+  { name: "Distributor", href: "/vendors/distributor" },
+  { name: "Payments", href: "/vendors" },
 ];
 
 export function Navbar() {
@@ -48,11 +54,15 @@ export function Navbar() {
   const [mounted, setMounted] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isDark, setIsDark] = useState(false);
+  const [userRole, setUserRole] = useState<string | null>(null);
 
   useEffect(() => {
     setMounted(true);
     const storedShop = localStorage.getItem("activeShop") || "DONO";
     setActiveShop(storedShop);
+
+    const role = localStorage.getItem("role");
+    setUserRole(role);
 
     const theme = localStorage.getItem("theme") || "classic";
     const darkMode = localStorage.getItem("darkMode") === "true";
@@ -87,9 +97,22 @@ export function Navbar() {
 
   if (!mounted) return null;
 
-  // Split items for "More" dropdown: first 6 items visible, last 3 in "More"
-  const visibleItems = navItems.slice(0, 6);
-  const moreItems = navItems.slice(6);
+  // Role-aware visibility: restrict vendor management to privileged roles
+  const hasVendorAccess = () => {
+    if (!mounted) return true;
+    if (!userRole) return true; // default visible in dev
+    return ["admin", "manager", "owner"].includes(userRole);
+  };
+
+  // Filter nav items by role
+  const filteredNav = navItems.filter((item) => {
+    if (item.name === "Vendors" && !hasVendorAccess()) return false;
+    return true;
+  });
+
+  // Split items for "More" dropdown: show first 6 items, rest in "More"
+  const visibleItems = filteredNav.slice(0, 6);
+  const moreItems = filteredNav.slice(6);
 
   return (
     <>
@@ -105,7 +128,28 @@ export function Navbar() {
           {/* DESKTOP NAV - Font 11px, reduced padding */}
           <div className="hidden xl:flex items-center gap-0.5">
             {visibleItems.map((item) => (
-              <NavLink key={item.name} item={item} isActive={pathname === item.href} />
+              item.name === "Vendors" ? (
+                <DropdownMenu key="vendors">
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="sm" className={cn(
+                      "h-9 px-2 rounded-lg flex items-center gap-1.5 font-bold transition-all",
+                      pathname === item.href ? "text-primary bg-primary/5 shadow-sm" : "text-slate-500 dark:text-slate-400 hover:text-primary hover:bg-primary/5"
+                    )}>
+                      <item.icon className={cn("w-3.5 h-3.5", pathname === item.href ? "text-primary" : "text-slate-400")} />
+                      <span className="text-[11px] uppercase tracking-wider">{item.name}</span>
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start" className="w-44 rounded-xl p-2 shadow-xl border-none">
+                    {vendorSubItems.map((s) => (
+                      <Link key={s.name} href={s.href}>
+                        <DropdownMenuItem className={cn("rounded-lg font-bold py-2.5 px-3 cursor-pointer flex items-center gap-2", pathname === s.href ? "text-primary bg-primary/5" : "text-slate-600")}>{s.name}</DropdownMenuItem>
+                      </Link>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              ) : (
+                <NavLink key={item.name} item={item} isActive={pathname === item.href} />
+              )
             ))}
 
             {/* "More" Dropdown for desktop */}
@@ -119,7 +163,19 @@ export function Navbar() {
               <DropdownMenuContent align="start" className="w-48 rounded-xl p-2 shadow-xl border-none">
                 {moreItems.map((item) => {
                   const Icon = item.icon;
-                  return (
+                  return item.name === "Vendors" ? (
+                    // Vendors submenu inside More (if it ends up here)
+                    <div key="vendors-sub" className="px-2 py-1">
+                      <div className="text-xs font-black uppercase text-slate-400 px-3 py-1">Vendors</div>
+                      {vendorSubItems.map((s) => (
+                        <Link key={s.name} href={s.href}>
+                          <DropdownMenuItem className={cn("rounded-lg font-bold py-2.5 px-3 cursor-pointer flex items-center gap-2", pathname === s.href ? "text-primary bg-primary/5" : "text-slate-600")}>
+                            <span className="text-xs uppercase">{s.name}</span>
+                          </DropdownMenuItem>
+                        </Link>
+                      ))}
+                    </div>
+                  ) : (
                     <Link key={item.name} href={item.href}>
                       <DropdownMenuItem className={cn("rounded-lg font-bold py-2.5 px-3 cursor-pointer flex items-center gap-2", pathname === item.href ? "text-primary bg-primary/5" : "text-slate-600")}>
                         <Icon className="w-4 h-4" />
@@ -182,13 +238,36 @@ export function Navbar() {
             {navItems.map((item) => {
               const Icon = item.icon;
               const isActive = pathname === item.href;
+              if (item.name === "Vendors") {
+                return (
+                  <div key="mobile-vendors" className="col-span-2">
+                    <Link href={item.href} onClick={() => setIsMobileMenuOpen(false)}>
+                      <Button variant="outline" className={cn(
+                        "w-full h-24 rounded-3xl flex flex-col gap-2 font-black text-[10px] uppercase transition-all",
+                        isActive ? "border-primary bg-primary/5 text-primary shadow-lg shadow-primary/10" : "border-slate-100 dark:border-slate-800 hover:border-primary/50"
+                      )}>
+                        <Icon className={cn("w-6 h-6", isActive ? "text-primary" : "text-slate-400")} />
+                        {item.name}
+                      </Button>
+                    </Link>
+                    <div className="grid grid-cols-2 gap-2 mt-3">
+                      {vendorSubItems.map((s) => (
+                        <Link key={s.name} href={s.href} onClick={() => setIsMobileMenuOpen(false)}>
+                          <Button variant="ghost" className="w-full h-14 rounded-2xl text-sm font-bold bg-slate-50">
+                            {s.name}
+                          </Button>
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
+                );
+              }
+
               return (
                 <Link key={item.name} href={item.href} onClick={() => setIsMobileMenuOpen(false)}>
                   <Button variant="outline" className={cn(
-                    "w-full h-24 rounded-3xl flex flex-col gap-2 font-black text-[10px] uppercase transition-all", 
-                    isActive 
-                      ? "border-primary bg-primary/5 text-primary shadow-lg shadow-primary/10" 
-                      : "border-slate-100 dark:border-slate-800 hover:border-primary/50"
+                    "w-full h-24 rounded-3xl flex flex-col gap-2 font-black text-[10px] uppercase transition-all",
+                    isActive ? "border-primary bg-primary/5 text-primary shadow-lg shadow-primary/10" : "border-slate-100 dark:border-slate-800 hover:border-primary/50"
                   )}>
                     <Icon className={cn("w-6 h-6", isActive ? "text-primary" : "text-slate-400")} />
                     {item.name}

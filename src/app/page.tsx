@@ -26,7 +26,7 @@ import { DB } from "@/lib/storage";
 import { getHisaabMonth, formatInr } from "@/lib/hisaab-storage";
 import { getExpensesMonth } from "@/lib/expense-storage";
 import { getStockItems, getSettingsStaff } from "@/lib/settings-catalog";
-import { getDailyStock } from "@/lib/inventory-storage";
+import { InventoryService } from "@/lib/services/inventory-service";
 import { getAllOfficeOrders, getAllDairyEntries } from "@/lib/office-dairy-storage";
 import {
   BarChart,
@@ -42,11 +42,19 @@ import {
 export default function DashboardPage() {
   const [mounted, setMounted] = useState(false);
   const [activeShop, setActiveShop] = useState<string>("DONO");
+  const [lowStockCount, setLowStockCount] = useState(0);
 
   useEffect(() => {
     setMounted(true);
     const stored = localStorage.getItem("activeShop") || "DONO";
     setActiveShop(stored);
+    
+    // Load Low Stock Alerts from Ledger
+    const fetchAlerts = async () => {
+      const count = await InventoryService.getLowStockAlerts();
+      setLowStockCount(count);
+    };
+    fetchAlerts();
   }, []);
 
   // Today's Data
@@ -99,19 +107,12 @@ export default function DashboardPage() {
 
   // Alerts Data
   const alerts = useMemo(() => {
-    const items = getStockItems();
-    const lowStock = items.filter((item) => {
-      const stock = getDailyStock("NAVLAKHA", today)?.entries.find(e => e.itemCode === item.code)?.closing || 0;
-      const stock2 = getDailyStock("NOVELTY", today)?.entries.find(e => e.itemCode === item.code)?.closing || 0;
-      return (stock + stock2) < 20;
-    }).length;
-
     const officeDue = getAllOfficeOrders().reduce((sum, o) => sum + o.balance, 0);
     const dairyDue = getAllDairyEntries().reduce((sum, e) => sum + e.balance, 0);
     const pendingSalary = getSettingsStaff().length; // Simplified for dashboard
 
-    return { lowStock, officeDue, dairyDue, pendingSalary };
-  }, [today]);
+    return { lowStock: lowStockCount, officeDue, dairyDue, pendingSalary };
+  }, [lowStockCount]);
 
   // Chart Data (Last 6 Months)
   const chartData = useMemo(() => {

@@ -37,7 +37,7 @@ import { format, startOfYear, eachMonthOfInterval, startOfMonth, endOfMonth, eac
 import { DB } from "@/lib/storage";
 import { getHisaabMonth, formatInr, monthOptionsFromJan2025 } from "@/lib/hisaab-storage";
 import { getExpensesMonth } from "@/lib/expense-storage";
-import { getStockPurchases } from "@/lib/inventory-storage";
+import { InventoryService } from "@/lib/services/inventory-service";
 import {
   BarChart,
   Bar,
@@ -56,51 +56,56 @@ export default function ReportsPage() {
   const [historyShop, setHistoryShop] = useState("NAVLAKHA");
   const [yearlyYear, setYearlyYear] = useState(new Date().getFullYear().toString());
 
+  const [pnlData, setPnlData] = useState<any[]>([]);
+
   const monthOptions = useMemo(() => monthOptionsFromJan2025(), []);
 
   // TAB 1: Monthly P&L
-  const pnlData = useMemo(() => {
-    const shops = ["NAVLAKHA", "NOVELTY"];
-    return shops.map((shop) => {
-      const hisaab = getHisaabMonth(shop, pnlMonth);
-      const revenue = hisaab.reduce((sum, e) => sum + e.total, 0);
-      
-      const purchases = getStockPurchases(shop, pnlMonth);
-      const stockCost = purchases.reduce((sum, p) => sum + p.grandTotal, 0);
-      
-      const expEntries = getExpensesMonth(shop, pnlMonth);
-      const dailyExp = expEntries.reduce((sum, e) => sum + e.dailyExp, 0);
-      const milkExp = expEntries.reduce((sum, e) => sum + e.milkExp, 0);
-      
-      // Categorize big expenses
-      let bigExp = 0, salary = 0, rent = 0, electricity = 0;
-      expEntries.forEach(e => {
-        const name = e.bigExpName.toLowerCase();
-        if (name.includes("salary")) salary += e.bigExpAmount;
-        else if (name.includes("rent")) rent += e.bigExpAmount;
-        else if (name.includes("electricity")) electricity += e.bigExpAmount;
-        else bigExp += e.bigExpAmount;
-      });
+  useEffect(() => {
+    const fetchPnl = async () => {
+      const shops = ["NAVLAKHA", "NOVELTY"];
+      const results = await Promise.all(shops.map(async (shop) => {
+        const hisaab = getHisaabMonth(shop, pnlMonth);
+        const revenue = hisaab.reduce((sum, e) => sum + e.total, 0);
+        
+        const stockCost = await InventoryService.getMonthlyStockCost(shop, pnlMonth);
+        
+        const expEntries = getExpensesMonth(shop, pnlMonth);
+        const dailyExp = expEntries.reduce((sum, e) => sum + e.dailyExp, 0);
+        const milkExp = expEntries.reduce((sum, e) => sum + e.milkExp, 0);
+        
+        // Categorize big expenses
+        let bigExp = 0, salary = 0, rent = 0, electricity = 0;
+        expEntries.forEach(e => {
+          const name = e.bigExpName.toLowerCase();
+          if (name.includes("salary")) salary += e.bigExpAmount;
+          else if (name.includes("rent")) rent += e.bigExpAmount;
+          else if (name.includes("electricity")) electricity += e.bigExpAmount;
+          else bigExp += e.bigExpAmount;
+        });
 
-      const totalExp = stockCost + dailyExp + milkExp + bigExp + salary + rent + electricity;
-      const net = revenue - totalExp;
+        const totalExp = stockCost + dailyExp + milkExp + bigExp + salary + rent + electricity;
+        const net = revenue - totalExp;
 
-      return {
-        shop,
-        revenue,
-        stockCost,
-        dailyExp,
-        milkExp,
-        bigExp,
-        salary,
-        rent,
-        electricity,
-        net,
-      };
-    });
+        return {
+          shop,
+          revenue,
+          stockCost,
+          dailyExp,
+          milkExp,
+          bigExp,
+          salary,
+          rent,
+          electricity,
+          net,
+        };
+      }));
+      setPnlData(results);
+    };
+    fetchPnl();
   }, [pnlMonth]);
 
-  const combinedNet = useMemo(() => pnlData.reduce((sum, s) => sum + s.net, 0), [pnlData]);
+  const combinedNet = useMemo(() => pnlData.reduce((sum, s) => sum + (s.net || 0), 0), [pnlData]);
 
   // TAB 2: Month History
   const historyData = useMemo(() => {

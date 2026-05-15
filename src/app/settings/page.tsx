@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { Navbar } from "@/components/layout/Navbar";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -469,6 +470,13 @@ export default function SettingsPage() {
             <Settings className="w-4 h-4" />
             Shops, staff, dairies, offices, stock & fixed expenses
           </p>
+          <div className="flex items-center gap-2">
+            <Link href="/vendors">
+              <Button variant="outline" className="h-11 rounded-xl font-bold">
+                Manage Vendors
+              </Button>
+            </Link>
+          </div>
         </header>
 
         <Tabs defaultValue="shops" className="space-y-6">
